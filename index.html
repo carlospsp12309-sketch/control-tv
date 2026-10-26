@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#07040f">
+<title>Control Remoto TV</title>
+<meta name="description" content="Control remoto web para TV Samsung y LG por WiFi">
+<style>
+:root{--bg:#07040f;--c:#00f0ff;--m:#ff2bd6;--g:#39ff14;--y:#ffe600;--txt:#eaf8ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif;overflow:hidden}
+body{background:radial-gradient(circle at 0 100%,#ff2bd633,transparent 45%),radial-gradient(circle at 100% 0,#00f0ff2b,transparent 45%),var(--bg)}
+#app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+#status{padding:7px 12px;font-size:12px;text-align:center;background:#0008;border-bottom:1px solid #00f0ff44;letter-spacing:.5px}
+#status.ok{color:var(--g);text-shadow:0 0 8px var(--g)}#status.error{color:#ff4d6d;text-shadow:0 0 8px #ff4d6d}#status.conectando{color:var(--y);text-shadow:0 0 8px var(--y)}
+main{flex:1;overflow:auto;padding:14px 16px}
+.tab{display:none}.tab.on{display:block}
+.row{display:flex;gap:12px;justify-content:space-between;margin-bottom:14px}
+button{border:1.5px solid var(--c);color:var(--c);background:#00f0ff0d;border-radius:16px;font-size:15px;padding:0;height:54px;flex:1;
+ text-shadow:0 0 8px var(--c);box-shadow:0 0 8px #00f0ff66,inset 0 0 10px #00f0ff22;transition:transform .06s,box-shadow .1s,background .1s}
+button:active{transform:scale(.93);background:#00f0ff33;box-shadow:0 0 18px var(--c),inset 0 0 14px #00f0ff66}
+.sm{height:44px;font-size:13px;border-color:var(--m);color:var(--m);background:#ff2bd60d;text-shadow:0 0 8px var(--m);box-shadow:0 0 8px #ff2bd666,inset 0 0 10px #ff2bd622}
+.sm:active{background:#ff2bd633;box-shadow:0 0 18px var(--m),inset 0 0 14px #ff2bd666}
+.round{border-radius:50%}
+.dpad{position:relative;width:260px;height:230px;margin:6px auto 16px;border-radius:60px;border:2px solid var(--m);
+ box-shadow:0 0 16px var(--m),0 0 16px var(--c) inset,inset 0 0 24px #ff2bd633}
+.dpad button{position:absolute;width:64px;height:54px}
+.dpad .u{top:12px;left:98px}.dpad .d{bottom:12px;left:98px}.dpad .l{left:12px;top:88px}.dpad .r{right:12px;top:88px}
+.dpad .ok{left:88px;top:78px;width:84px;height:74px;border-radius:30px;font-size:20px;font-weight:700;color:#fff;border-color:var(--m);
+ background:linear-gradient(135deg,#ff2bd666,#00f0ff55);text-shadow:0 0 10px #fff,0 0 18px var(--m);box-shadow:0 0 20px var(--m),0 0 30px #00f0ff88}
+.cols{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.rock{display:flex;flex-direction:column;width:76px;height:190px;border:1.5px solid var(--g);border-radius:34px;overflow:hidden;box-shadow:0 0 12px #39ff1488,inset 0 0 14px #39ff1422}
+.rock button{flex:1;height:auto;border:0;border-radius:0;background:none;font-size:22px;color:var(--g);text-shadow:0 0 8px var(--g);box-shadow:none}
+.rock button:active{background:#39ff1433}
+.rock .lbl{text-align:center;line-height:1;padding:6px 0;font-size:17px;color:var(--g);text-shadow:0 0 8px var(--g)}
+.mid{display:flex;flex-direction:column;gap:14px;align-items:center}
+.mid button{width:64px;flex:none;border-color:var(--y);color:var(--y);text-shadow:0 0 8px var(--y);background:#ffe6000d;box-shadow:0 0 8px #ffe60066,inset 0 0 10px #ffe60022}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.keys button{height:72px;font-size:28px;border-radius:26px}
+.keys small{display:block;font-size:10px;opacity:.7;letter-spacing:1px}
+.colors{display:flex;gap:12px;margin-top:18px}
+.colors button{height:44px;border-radius:14px;background:none}
+#pad{height:300px;border-radius:24px;background:#00f0ff08;border:2px dashed var(--c);box-shadow:0 0 16px #00f0ff66,inset 0 0 24px #00f0ff22;
+ display:flex;align-items:center;justify-content:center;touch-action:none;color:var(--c);text-shadow:0 0 8px var(--c);text-align:center;font-size:14px;padding:20px}
+.seg{display:flex;gap:8px;margin:12px 0}
+.seg button{height:38px;font-size:13px;border-radius:12px}
+.seg button.sel{background:var(--c);color:#001418;text-shadow:none;box-shadow:0 0 18px var(--c)}
+textarea,input[type=text]{width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--c);background:#00000088;color:var(--txt);font-size:16px;user-select:text;box-shadow:0 0 8px #00f0ff55;outline:none}
+textarea:focus,input[type=text]:focus{box-shadow:0 0 16px var(--c)}
+label{font-size:13px;color:var(--c);display:block;margin:12px 0 6px}
+nav{display:flex;background:#000a;border-top:1px solid var(--c);box-shadow:0 -4px 16px #00f0ff33}
+nav button{border:0;background:none;box-shadow:none;border-radius:0;height:58px;font-size:11px;color:#6b7f99;text-shadow:none;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center}
+nav button.on{color:var(--m);text-shadow:0 0 10px var(--m)}nav span{font-size:20px}
+.hint{font-size:12px;opacity:.65;margin-top:10px;line-height:1.4}
+.act{background:#39ff1422;border-color:var(--g);color:var(--g);text-shadow:0 0 8px var(--g);box-shadow:0 0 14px #39ff1499;height:48px;margin-top:10px;width:100%}
+
+select{width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--c);background:#000000aa;color:var(--txt);font-size:15px;box-shadow:0 0 8px #00f0ff55;outline:none}
+[hidden]{display:none!important}
+button:disabled{opacity:.3;box-shadow:none;text-shadow:none}
+#found{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+#found button{height:auto;padding:12px 14px;text-align:left;font-size:14px;border-color:var(--g);color:var(--g);text-shadow:0 0 8px var(--g);background:#39ff1411;box-shadow:0 0 8px #39ff1466;flex:none}
+#found small{display:block;opacity:.7;font-size:12px;margin-top:2px}
+#modal{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+#modal .box{width:100%;max-width:340px;border:2px solid var(--m);border-radius:22px;padding:20px;background:#0b0618;box-shadow:0 0 24px var(--m)}
+#modal h3{margin:0 0 6px;color:var(--m);text-shadow:0 0 10px var(--m)}
+#modal input{text-align:center;font-size:28px;letter-spacing:6px;margin-top:6px}
+#toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#000d;border:1px solid var(--y);color:var(--y);padding:10px 16px;border-radius:14px;font-size:13px;z-index:11;text-shadow:0 0 8px var(--y);max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="status">Sin conexión</div>
+ <main>
+
+  <!-- REMOTE -->
+  <section class="tab on" id="t-remote">
+   <div class="row">
+    <button class="sm" data-k="KEY_POWER">⏻</button><button class="sm" data-k="KEY_GUIDE">GUIDE</button>
+    <button class="sm" data-k="KEY_HDMI">HDMI</button><button class="sm" data-k="KEY_HOME">⌂</button>
+   </div>
+   <div class="row"><button class="sm" data-k="KEY_TOOLS" style="flex:0 0 76px">TOOLS</button><span style="flex:1"></span><button class="sm" data-k="KEY_INFO" style="flex:0 0 76px">INFO</button></div>
+   <div class="dpad">
+    <button class="u" data-k="KEY_UP">▲</button><button class="d" data-k="KEY_DOWN">▼</button>
+    <button class="l" data-k="KEY_LEFT">◀</button><button class="r" data-k="KEY_RIGHT">▶</button>
+    <button class="ok" data-k="KEY_ENTER">OK</button>
+   </div>
+   <div class="row"><button class="sm" data-k="KEY_RETURN" style="flex:0 0 76px">↩</button><span style="flex:1"></span><button class="sm" data-k="KEY_EXIT" style="flex:0 0 76px">EXIT</button></div>
+   <div class="cols">
+    <div class="rock"><button data-k="KEY_VOLUP" data-rep>+</button><div class="lbl">VOL</div><button data-k="KEY_VOLDOWN" data-rep>−</button></div>
+    <div class="mid"><button data-k="KEY_MENU">MENU</button><button data-k="KEY_MUTE">🔇</button><button data-k="KEY_SOURCE">⎆</button></div>
+    <div class="rock"><button data-k="KEY_CHUP" data-rep>+</button><div class="lbl">CH</div><button data-k="KEY_CHDOWN" data-rep>−</button></div>
+   </div>
+  </section>
+
+  <!-- CONTROL / NUMEROS -->
+  <section class="tab" id="t-ctrl">
+   <div class="keys">
+    <button data-k="KEY_1">1</button><button data-k="KEY_2">2<small>ABC</small></button><button data-k="KEY_3">3<small>DEF</small></button>
+    <button data-k="KEY_4">4<small>GHI</small></button><button data-k="KEY_5">5<small>JKL</small></button><button data-k="KEY_6">6<small>MNO</small></button>
+    <button data-k="KEY_7">7<small>PQRS</small></button><button data-k="KEY_8">8<small>TUV</small></button><button data-k="KEY_9">9<small>WXYZ</small></button>
+    <button data-k="KEY_TTX_MIX" style="font-size:16px">TTX</button><button data-k="KEY_0">0</button><button data-k="KEY_PRECH" style="font-size:15px">PRE-CH</button>
+   </div>
+   <div class="row" style="margin-top:18px">
+    <button data-k="KEY_REWIND" class="round">⏪</button><button data-k="KEY_STOP" class="round">■</button>
+    <button data-k="KEY_PLAY" class="round">▶</button><button data-k="KEY_FF" class="round">⏩</button>
+   </div>
+   <div class="colors">
+    <button data-k="KEY_RED" style="border-color:#ff2b4d;color:#ff2b4d;text-shadow:0 0 8px #ff2b4d;box-shadow:0 0 10px #ff2b4d88">A</button><button data-k="KEY_YELLOW" style="border-color:#ffe600;color:#ffe600;text-shadow:0 0 8px #ffe600;box-shadow:0 0 10px #ffe60088">B</button>
+    <button data-k="KEY_GREEN" style="border-color:#39ff14;color:#39ff14;text-shadow:0 0 8px #39ff14;box-shadow:0 0 10px #39ff1488">C</button><button data-k="KEY_CYAN" style="border-color:#00f0ff;color:#00f0ff;text-shadow:0 0 8px #00f0ff;box-shadow:0 0 10px #00f0ff88">D</button>
+   </div>
+  </section>
+
+  <!-- TOUCHPAD -->
+  <section class="tab" id="t-pad">
+   <div class="seg">
+    <button id="m-ptr" class="sel">🖱 Puntero</button><button id="m-arrows">↔ Flechas</button>
+   </div>
+   <div id="pad">Desliza para mover la flechita<br>Toca = clic · Dos dedos = Atrás</div>
+   <div class="row" style="margin-top:14px">
+    <button data-k="KEY_RETURN" class="sm">↩ Atrás</button><button id="clickBtn" class="sm">Clic</button><button data-k="KEY_HOME" class="sm">⌂ Inicio</button>
+   </div>
+   <div class="row"><button data-k="KEY_VOLDOWN" data-rep class="sm">Vol −</button><button data-k="KEY_MUTE" class="sm">🔇</button><button data-k="KEY_VOLUP" data-rep class="sm">Vol +</button></div>
+   <p class="hint" id="padHint">Modo Puntero: mueve el cursor de la TV (Samsung y LG). Modo Flechas: deslizar = flechas, tocar = OK.</p>
+  </section>
+
+  <!-- TECLADO -->
+  <section class="tab" id="t-kb">
+   <label>Escribe aquí y envía a la TV (cuando haya un campo de texto abierto, p. ej. búsqueda de YouTube/Netflix)</label>
+   <textarea id="txt" rows="3" placeholder="Texto…" autocomplete="off"></textarea>
+   <button class="act" id="sendTxt">Enviar texto a la TV</button>
+   <label>Modo en vivo (cada letra se envía al instante)</label>
+   <input type="text" id="live" placeholder="Escribe letras…" autocomplete="off" autocapitalize="off">
+   <div class="row" style="margin-top:12px">
+    <button class="sm" data-k="KEY_ENTER">Enter</button><button class="sm" id="bksp">⌫ Borrar</button><button class="sm" data-k="KEY_RETURN">Cerrar ↩</button>
+   </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section class="tab" id="t-set">
+   <label>Marca de tu TV</label>
+   <select id="brand"><option value="samsung">Samsung (Tizen, 2016 en adelante)</option><option value="lg">LG (webOS)</option></select>
+   <label>IP de la TV (en la TV: Ajustes → Red → Estado de red)</label>
+   <input type="text" id="ip" inputmode="decimal" placeholder="192.168.1.50">
+   <button class="act" id="cert" style="background:#ffe6001a;border-color:var(--y);color:var(--y);text-shadow:0 0 8px var(--y);box-shadow:0 0 14px #ffe60099">1) Aceptar certificado de la TV (solo la primera vez)</button>
+   <button class="act" id="conn">2) Conectar</button>
+   <p class="hint"><b>Primera vez:</b> pulsa el botón amarillo; se abre una pestaña con un aviso de seguridad. Elige “Avanzado” → “Continuar”. Cierra esa pestaña, vuelve aquí y pulsa Conectar. Después acepta “Permitir” en la pantalla de la TV.<br><br>
+   • El celular y la TV deben estar en el mismo WiFi (no “red de invitados”).<br>
+   • La TV debe estar encendida (en espera no responde).<br>
+   • Funciona mejor con Chrome en Android. En iPhone/Safari puede fallar por el certificado de la TV.<br>
+   • Si Chrome pregunta por acceso a dispositivos de la red local, elige Permitir.<br>
+   • Esta versión no tiene servidor y solo soporta Samsung y LG.</p>
+  </section>
+
+ </main>
+  <div id="toast" hidden></div>
+ <nav>
+  <button class="on" data-tab="remote"><span>🎛</span>Control</button>
+  <button data-tab="ctrl"><span>🔢</span>Números</button>
+  <button data-tab="pad"><span>👆</span>Touchpad</button>
+  <button data-tab="kb"><span>⌨</span>Teclado</button>
+  <button data-tab="set"><span>⚙</span>Ajustes</button>
+ </nav>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const SAM_PORT=8002, LG_PORT=3001;
+let tv=null, mode='ptr';
+const vib=()=>navigator.vibrate&&navigator.vibrate(12);
+function setStatus(cls,msg){const s=$('#status');s.className=cls;s.textContent=msg}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2400)}
+
+const LG_BUTTONS={KEY_UP:'UP',KEY_DOWN:'DOWN',KEY_LEFT:'LEFT',KEY_RIGHT:'RIGHT',KEY_ENTER:'ENTER',KEY_RETURN:'BACK',KEY_EXIT:'EXIT',
+ KEY_HOME:'HOME',KEY_MENU:'MENU',KEY_TOOLS:'QMENU',KEY_INFO:'INFO',KEY_GUIDE:'GUIDE',KEY_VOLUP:'VOLUMEUP',KEY_VOLDOWN:'VOLUMEDOWN',
+ KEY_MUTE:'MUTE',KEY_CHUP:'CHANNELUP',KEY_CHDOWN:'CHANNELDOWN',KEY_PLAY:'PLAY',KEY_STOP:'STOP',KEY_REWIND:'REWIND',KEY_FF:'FASTFORWARD',
+ KEY_RED:'RED',KEY_GREEN:'GREEN',KEY_YELLOW:'YELLOW',KEY_CYAN:'BLUE',KEY_TTX_MIX:'TEXT',KEY_PRECH:'FLASHBACK'};
+const LG_MANIFEST={manifestVersion:1,appVersion:'1.1',permissions:['LAUNCH','LAUNCH_WEBAPP','APP_TO_APP','CONTROL_AUDIO','CONTROL_DISPLAY',
+ 'CONTROL_INPUT_JOYSTICK','CONTROL_INPUT_MEDIA_PLAYBACK','CONTROL_INPUT_TV','CONTROL_INPUT_TEXT','CONTROL_MOUSE_AND_KEYBOARD','CONTROL_POWER',
+ 'READ_APP_STATUS','READ_CURRENT_CHANNEL','READ_INPUT_DEVICE_LIST','READ_NETWORK_STATE','READ_RUNNING_APPS','READ_TV_CHANNEL_LIST',
+ 'WRITE_NOTIFICATION_TOAST','READ_POWER_STATE']};
+const CERT_HELP='No se pudo conectar. 1) Pulsa "Aceptar certificado" y acepta el aviso en la pestaña que se abre. 2) Revisa la IP y que la TV esté encendida en este mismo WiFi.';
+
+// ---------- Conexión ----------
+function closeTV(){ if(tv){tv.closed=true;try{tv.ws&&tv.ws.close()}catch(e){}try{tv.ptr&&tv.ptr.close()}catch(e){}tv=null} }
+function fail(t,msg){ if(tv!==t)return; t.closed=true; try{t.ws.close()}catch(e){} try{t.ptr&&t.ptr.close()}catch(e){} tv=null; setStatus('error',msg) }
+
+function connect(){
+  const ip=$('#ip').value.trim(), brand=$('#brand').value;
+  if(!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return setStatus('error','IP inválida');
+  store.set('ip',ip); store.set('brand',brand);
+  closeTV();
+  const t={brand,ip,ready:false,closed:false,pending:new Map(),n:0,hdmi:0}; tv=t;
+  setStatus('conectando','Conectando a '+ip+'… acepta el aviso en la TV si aparece');
+  const timer=setTimeout(()=>{ if(!t.ready) fail(t,CERT_HELP) },40000);
+  const done=()=>{ if(t.ready||tv!==t)return; t.ready=true; clearTimeout(timer); setStatus('ok','Conectado: '+(brand==='lg'?'LG':'Samsung')+' ('+ip+')') };
+  const lost=()=>{ if(t.closed||tv!==t)return; clearTimeout(timer); if(!t.ready)return fail(t,CERT_HELP); t.ready=false; setStatus('off','Desconectado de la TV (toca Conectar)') };
+  try{ brand==='lg'?openLG(t,done,lost):openSamsung(t,done,lost) }catch(e){ fail(t,'Error: '+e.message) }
+}
+
+function openSamsung(t,done,lost){
+  const tk=store.get('samsung_'+t.ip), name=btoa('Control Remoto Web');
+  const ws=new WebSocket('wss://'+t.ip+':'+SAM_PORT+'/api/v2/channels/samsung.remote.control?name='+name+(tk?'&token='+tk:'')); t.ws=ws;
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}
+    if(m.event==='ms.channel.connect'){ if(m.data&&m.data.token)store.set('samsung_'+t.ip,m.data.token); done() }
+    else if(m.event==='ms.channel.unauthorized'||m.event==='ms.channel.timeOut') fail(t,'La TV no permitió la conexión. Elige "Permitir" en la TV y toca Conectar otra vez.') };
+  ws.onclose=lost;
+}
+
+function lgReq(t,uri,payload){
+  return new Promise((res,rej)=>{
+    if(!t.ws||t.ws.readyState!==1)return rej(new Error('sin conexión'));
+    const id='r'+(++t.n), to=setTimeout(()=>{t.pending.delete(id);rej(new Error('tiempo agotado'))},5000);
+    t.pending.set(id,m=>{clearTimeout(to);res(m)});
+    t.ws.send(JSON.stringify({type:'request',id,uri,payload}));
+  });
+}
+async function lgPointer(t){
+  const r=await lgReq(t,'ssap://com.webos.service.networkinput/getPointerInputSocket');
+  if(!r.payload||!r.payload.socketPath)throw new Error('la LG no entregó el socket de control');
+  const u=new URL(r.payload.socketPath); // la LG da ws://…:3000/…; desde https hay que usar wss en 3001
+  t.ptr=new WebSocket('wss://'+t.ip+':'+LG_PORT+u.pathname+u.search);
+  await new Promise((res,rej)=>{t.ptr.onopen=res;t.ptr.onerror=()=>rej(new Error('no se pudo abrir el socket de control'))});
+}
+function openLG(t,done,lost){
+  const ws=new WebSocket('wss://'+t.ip+':'+LG_PORT); t.ws=ws;
+  ws.onopen=()=>ws.send(JSON.stringify({type:'register',id:'register_0',payload:{forcePairing:false,pairingType:'PROMPT','client-key':store.get('lg_'+t.ip)||undefined,manifest:LG_MANIFEST}}));
+  ws.onmessage=async e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}
+    if(m.type==='registered'){ if(m.payload&&m.payload['client-key'])store.set('lg_'+t.ip,m.payload['client-key']);
+      try{await lgPointer(t);done()}catch(err){fail(t,'LG: '+err.message)} }
+    else if(m.id==='register_0'&&m.type==='response') setStatus('conectando','Acepta el permiso en la pantalla de la LG')
+    else if(m.id==='register_0'&&m.type==='error') fail(t,'La LG rechazó el emparejamiento')
+    else if(m.id&&t.pending.has(m.id)){t.pending.get(m.id)(m);t.pending.delete(m.id)} };
+  ws.onclose=lost;
+}
+
+// ---------- Envío de órdenes ----------
+const ready=()=>{ if(tv&&tv.ready)return true; toast('Primero conecta tu TV (pestaña Ajustes)'); return false };
+function samSend(p){ if(tv.ws.readyState===1)tv.ws.send(JSON.stringify({method:'ms.remote.control',params:p})) }
+function lgPtr(s){ if(tv.ptr&&tv.ptr.readyState===1)tv.ptr.send(s) }
+function sendKey(k){
+  if(!ready())return;
+  if(tv.brand==='samsung')return samSend({Cmd:'Click',DataOfCmd:k,Option:'false',TypeOfRemote:'SendRemoteKey'});
+  const q=(u,p)=>lgReq(tv,u,p).catch(()=>{});
+  if(k==='KEY_POWER')return q('ssap://system/turnOff');
+  if(k==='KEY_HDMI'){tv.hdmi=tv.hdmi%4+1;return q('ssap://system.launcher/launch',{id:'com.webos.app.hdmi'+tv.hdmi})}
+  if(k==='KEY_SOURCE')return q('ssap://system.launcher/launch',{id:'com.webos.app.inputpicker'});
+  if(k==='KEY_BACKSPACE')return q('ssap://com.webos.service.ime/deleteCharacters',{count:1});
+  const d=/^KEY_(\d)$/.exec(k), name=d?d[1]:LG_BUTTONS[k];
+  if(!name)return toast('Esa tecla no existe en LG');
+  lgPtr('type:button\nname:'+name+'\n\n');
+}
+function sendText(txt){
+  if(!ready())return;
+  if(tv.brand==='samsung')samSend({Cmd:btoa(unescape(encodeURIComponent(txt))),DataOfCmd:'base64',TypeOfRemote:'SendInputString'});
+  else lgReq(tv,'ssap://com.webos.service.ime/insertText',{text:txt,replace:0}).catch(()=>{});
+}
+function sendMove(dx,dy){
+  if(!tv||!tv.ready)return;
+  if(tv.brand==='samsung')samSend({Cmd:'Move',Position:{x:Math.round(dx),y:Math.round(dy),Time:String(Date.now())},TypeOfRemote:'ProcessMouseDevice'});
+  else lgPtr('type:move\ndx:'+Math.round(dx)+'\ndy:'+Math.round(dy)+'\ndown:0\n\n');
+}
+function sendClick(){
+  if(!ready())return;
+  if(tv.brand==='samsung')samSend({Cmd:'LeftClick',TypeOfRemote:'ProcessMouseDevice'});
+  else lgPtr('type:click\n\n');
+}
+
+// ---------- Interfaz ----------
+$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  $$('.tab').forEach(t=>t.classList.remove('on'));$('#t-'+b.dataset.tab).classList.add('on')});
+$$('[data-k]').forEach(b=>{
+  let timer; const fire=()=>{sendKey(b.dataset.k);vib()};
+  b.addEventListener('pointerdown',e=>{e.preventDefault();fire();
+    if(b.hasAttribute('data-rep')){timer=setTimeout(function r(){fire();timer=setTimeout(r,140)},450)}});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
+});
+$('#conn').onclick=connect;
+$('#cert').onclick=()=>{const ip=$('#ip').value.trim();
+  if(!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip))return setStatus('error','Escribe primero la IP de la TV');
+  window.open('https://'+ip+':'+($('#brand').value==='lg'?LG_PORT:SAM_PORT),'_blank')};
+
+// Teclado
+$('#sendTxt').onclick=()=>{const v=$('#txt').value;if(v){sendText(v);$('#txt').value=''}};
+let prev='';
+$('#live').addEventListener('input',e=>{const v=e.target.value;
+  if(v.length>prev.length)sendText(v.slice(prev.length)); else sendKey('KEY_BACKSPACE'); prev=v});
+$('#bksp').onclick=()=>sendKey('KEY_BACKSPACE');
+
+// Touchpad
+function setMode(m){mode=m;$('#m-ptr').classList.toggle('sel',m==='ptr');$('#m-arrows').classList.toggle('sel',m==='arr')}
+$('#m-ptr').onclick=()=>setMode('ptr'); $('#m-arrows').onclick=()=>setMode('arr');
+$('#clickBtn').onclick=()=>{mode==='ptr'?sendClick():sendKey('KEY_ENTER');vib()};
+const pad=$('#pad'); const pts=new Map(); let last=null,moved=0,t0=0,acc={x:0,y:0},maxFingers=0,lastSend=0;
+pad.addEventListener('pointerdown',e=>{pad.setPointerCapture(e.pointerId);pts.set(e.pointerId,e);
+  maxFingers=Math.max(maxFingers,pts.size);if(pts.size===1){last={x:e.clientX,y:e.clientY};moved=0;t0=Date.now();acc={x:0,y:0}}});
+pad.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId)||pts.size>1||!last)return;
+  const dx=e.clientX-last.x, dy=e.clientY-last.y; last={x:e.clientX,y:e.clientY}; moved+=Math.abs(dx)+Math.abs(dy);
+  if(mode==='ptr'){const now=Date.now();acc.x+=dx*1.6;acc.y+=dy*1.6;
+    if(now-lastSend>16){sendMove(acc.x,acc.y);acc={x:0,y:0};lastSend=now}}
+  else{acc.x+=dx;acc.y+=dy;const T=38;
+    if(Math.abs(acc.x)>T){sendKey(acc.x>0?'KEY_RIGHT':'KEY_LEFT');vib();acc.x=0}
+    if(Math.abs(acc.y)>T){sendKey(acc.y>0?'KEY_DOWN':'KEY_UP');vib();acc.y=0}}});
+const end=e=>{pts.delete(e.pointerId);
+  if(pts.size===0){
+    if(maxFingers>=2&&Date.now()-t0<350){sendKey('KEY_RETURN');vib()}
+    else if(moved<8&&Date.now()-t0<300){mode==='ptr'?sendClick():sendKey('KEY_ENTER');vib()}
+    maxFingers=0;last=null}};
+pad.addEventListener('pointerup',end);pad.addEventListener('pointercancel',end);
+
+// Al abrir: recordar la última TV y reconectar
+const sIp=store.get('ip'), sBrand=store.get('brand');
+if(sIp){$('#ip').value=sIp;if(sBrand)$('#brand').value=sBrand;connect()}
+else{setStatus('','Escribe la IP de tu TV en Ajustes para empezar');$('[data-tab=set]').click()}
+</script>
+</body>
+</html>
